@@ -4,14 +4,8 @@ import { ArrayElement, DeepRequired, Path, PathValue } from './typeHelpers';
 const TAB = '  ';
 
 class BaseQueryBuilder<T extends Record<string, any>> {
-  private conditions: Array<{
-    expression: string;
-    path: string;
-    value?: any;
-  }> = [];
-
+  private conditions: Array<{ expression: string; path: string; value?: any }> = [];
   protected nestedBuilders: Array<ConjunctionQueryBuilder<T> | DisjunctionQueryBuilder<T>> = [];
-
   protected connectionType: 'conjunction' | 'disjunction' = 'conjunction';
 
   constructor() {
@@ -63,7 +57,10 @@ class BaseQueryBuilder<T extends Record<string, any>> {
           .replace('$value', () => this.getValueOrParamName(path, value, parameters));
       }),
       ...this.nestedBuilders.map((nestedBuilder) => {
-        const nestedExpression = (nestedBuilder as BaseQueryBuilder<T>).getConditionsExpression(parameters, indention + 1);
+        const nestedExpression = (nestedBuilder as BaseQueryBuilder<T>).getConditionsExpression(
+          parameters,
+          indention + 1
+        );
         return `(\n${TAB.repeat(indention + 1)}${nestedExpression}\n${TAB.repeat(indention)})`;
       }),
     ].join(`\n${TAB.repeat(indention)}${this.connectionType === 'conjunction' ? 'AND' : 'OR'} `);
@@ -115,16 +112,50 @@ class DisjunctionQueryBuilder<T extends Record<string, any>> extends BaseQueryBu
   }
 }
 
+type SortOrder = 'ASC' | 'DESC';
+
 export class CosmosQueryBuilder<T extends Record<string, any>> extends ConjunctionQueryBuilder<DeepRequired<T>> {
+  private sorting: Array<{ by: string; order: SortOrder }> = [];
+  private pagination: { take?: number; skip?: number } = {};
+
+  orderBy<P extends Path<T>>(by: P, order: SortOrder = 'ASC'): this {
+    this.sorting.push({ by: String(by), order });
+    return this;
+  }
+
+  take(take: number) {
+    this.pagination.take = take;
+    return this;
+  }
+
+  skip(skip: number) {
+    this.pagination.skip = skip;
+    return this;
+  }
+
   select<F extends keyof T | '*'>(...fields: F[]): SqlQuerySpec {
-    const uniqueFields = fields.includes('*' as F) ? ['*'] : [...new Set(fields)];
+    const selectFields = fields.includes('*' as F)
+      ? '*'
+      : [...new Set(fields)].map((field) => `c.${String(field)}`).join(', ');
+    let query = `SELECT ${selectFields}\nFROM c`;
+
     const parameters: SqlParameter[] = [];
     const conditionsExpression = this.getConditionsExpression(parameters);
+    if (conditionsExpression.length) {
+      query += `\nWHERE ${conditionsExpression}`;
+    }
+
+    if (this.sorting.length) {
+      const sortExpression = this.sorting.map(({ by: path, order }) => `c.${path} ${order}`).join(', ');
+      query += `\nORDER BY ${sortExpression}`;
+    }
+
+    if (this.pagination.skip || this.pagination.take) {
+      query += `\nOFFSET ${this.pagination.skip ?? 0} LIMIT ${this.pagination.take ?? 999999999}`;
+    }
+
     return {
-      query: `
-SELECT ${uniqueFields.map((field) => `c.${String(field)}`).join(', ')}
-FROM c
-WHERE ${conditionsExpression}`.replace(/^\n/, ''),
+      query,
       parameters,
     };
   }

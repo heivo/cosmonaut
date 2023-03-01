@@ -33,13 +33,17 @@ describe('CosmosQueryBuilder', () => {
       .contains('softDeleted.by', 'ihe')
       .equals('some.deeply.nested.object', 1) */
       .or(({ equals, and }) => {
-        equals('id', '456')
+        equals('id', '456');
         and(({ isDefined, contains }) => {
           isDefined('id');
           contains('id', 'sfdsfd');
         });
       })
+      .orderBy('serial')
+      .orderBy('mode', 'DESC')
+      .take(10)
       .select('serial', 'id', 'mode', 'serial');
+
     expect(querySpec.query).toMatchInlineSnapshot(`
 "SELECT c.serial, c.id, c.mode
 FROM c
@@ -51,8 +55,11 @@ AND (
     IS_DEFINED(c.id)
     AND CONTAINS(c.id, @id_4, false)
   )
-)"
+)
+ORDER BY c.serial ASC, c.mode DESC
+OFFSET 0 LIMIT 10"
 `);
+
     expect(querySpec.parameters).toMatchInlineSnapshot(`
 [
   {
