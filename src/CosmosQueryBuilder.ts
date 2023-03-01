@@ -13,11 +13,14 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     this.contains = this.contains.bind(this);
     this.isDefined = this.isDefined.bind(this);
     this.arrayContains = this.arrayContains.bind(this);
-    this.containedInArray = this.containedInArray.bind(this);
   }
 
-  equals<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V): this {
-    this.addCondition('$path = $value', path, value);
+  equals<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V | V[]): this {
+    if (Array.isArray(value)) {
+      this.addCondition(`ARRAY_CONTAINS($value, $path)`, path, value);
+    } else {
+      this.addCondition('$path = $value', path, value);
+    }
     return this;
   }
 
@@ -33,11 +36,6 @@ class BaseQueryBuilder<T extends Record<string, any>> {
 
   arrayContains<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: ArrayElement<V>) {
     this.addCondition(`ARRAY_CONTAINS($path, $value)`, path, value);
-    return this;
-  }
-
-  containedInArray<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: Array<V>) {
-    this.addCondition(`ARRAY_CONTAINS($value, $path)`, path, value);
     return this;
   }
 

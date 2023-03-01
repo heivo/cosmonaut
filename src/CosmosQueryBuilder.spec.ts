@@ -28,7 +28,7 @@ describe('CosmosQueryBuilder', () => {
       /* .equals('mode', 'idle')
       .arrayContains('tags', 'aaa')
       .equals('price', 123.45) */
-      .containedInArray('id', ['0001', '0002'])
+      .equals('id', ['0001', '0002'])
       /* .equals('isConnected', true)
       .contains('softDeleted.by', 'ihe')
       .equals('some.deeply.nested.object', 1) */
