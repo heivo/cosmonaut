@@ -133,36 +133,41 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     this.conditions.push({ expression, path: String(path), value });
   }
 
-  protected getConditionsExpression(parameters: SqlParameter[], indention = 0): string {
-    return [
+  protected getConditionsExpression(
+    noParams = false,
+    parameters: SqlParameter[] = [],
+    indention = 0
+  ): { conditionsExpression: string; parameters: SqlParameter[] } {
+    const conditionsExpression = [
       ...this.conditions.map(({ expression, path, value }) => {
         return expression
           .replace('$path', `c.${path}`)
-          .replace('$value', () => this.getValueOrParamName(path, value, parameters));
+          .replace('$value', () =>
+            noParams || value === undefined || typeof value === 'boolean' || typeof value === 'number'
+              ? JSON.stringify(value)
+              : this.getParamName(path, value, parameters)
+          );
       }),
       ...this.nestedBuilders.map((nestedBuilder) => {
-        const nestedExpression = (nestedBuilder as BaseQueryBuilder<T>).getConditionsExpression(
-          parameters,
-          indention + 1
-        );
-        return `(\n${TAB.repeat(indention + 1)}${nestedExpression}\n${TAB.repeat(indention)})`;
+        const { conditionsExpression: nestedConditionsExpression } = (
+          nestedBuilder as BaseQueryBuilder<T>
+        ).getConditionsExpression(noParams, parameters, indention + 1);
+        return `(\n${TAB.repeat(indention + 1)}${nestedConditionsExpression}\n${TAB.repeat(indention)})`;
       }),
     ].join(`\n${TAB.repeat(indention)}${this.connectionType === 'conjunction' ? 'AND' : 'OR'} `);
+
+    return { conditionsExpression, parameters };
   }
 
-  private getValueOrParamName(path: string, value: any | undefined, parameters: SqlParameter[]) {
-    if (value === undefined || typeof value === 'boolean' || typeof value === 'number') {
-      return String(value);
-    } else {
-      const baseName = `@${path.replace(/\./g, '_')}`;
-      let paramName = baseName;
-      let counter = 1;
-      while (parameters.some((p) => p.name === paramName)) {
-        paramName = `${baseName}_${++counter}`;
-      }
-      parameters.push({ name: paramName, value });
-      return paramName;
+  private getParamName(path: string, value: any, parameters: SqlParameter[]) {
+    const baseName = `@${path.replace(/\./g, '_')}`;
+    let paramName = baseName;
+    let counter = 1;
+    while (parameters.some((p) => p.name === paramName)) {
+      paramName = `${baseName}_${++counter}`;
     }
+    parameters.push({ name: paramName, value });
+    return paramName;
   }
 }
 
@@ -236,14 +241,25 @@ export class CosmosQueryBuilder<
     return this;
   }
 
-  build({ pretty = false }: { pretty?: boolean } = {}): SqlQuerySpec {
+  build({
+    pretty = false,
+    noParams = false,
+  }: {
+    /** Pretty-print the query */
+    pretty?: boolean;
+    /**
+     * Inline all values within the query, useful for testing it in the CosmosDB Data Explorer
+     *
+     * Warning: should not be used in production to avoid SQL injection
+     */
+    noParams?: boolean;
+  } = {}): SqlQuerySpec {
     const selectFields = this.selection.length
       ? [...new Set(this.selection)].map((field) => `c.${field}`).join(', ')
       : '*';
     let query = `SELECT ${selectFields}\nFROM c`;
 
-    const parameters: SqlParameter[] = [];
-    const conditionsExpression = this.getConditionsExpression(parameters);
+    const { conditionsExpression, parameters } = this.getConditionsExpression(noParams);
     if (conditionsExpression.length) {
       query += `\nWHERE ${conditionsExpression}`;
     }

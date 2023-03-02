@@ -3,7 +3,7 @@ import { CosmosQueryBuilder } from './CosmosQueryBuilder';
 
 interface Asset {
   id: string;
-  serial: number;
+  serial: string;
   isConnected: boolean;
   mode: 'idle' | 'running';
   softDeleted?: {
@@ -26,8 +26,9 @@ describe('CosmosQueryBuilder', () => {
   it('does what I want', () => {
     const querySpec = new CosmosQueryBuilder<Asset>()
       .select('id', 'mode', 'serial')
-      .stringContains('id', '')
-      .equals('id', '123')
+      .stringContains('serial', 'abc')
+      .lowerEquals('price', 123)
+      .equals('isConnected', true)
       .equals('id', ['0001', '0002'])
       .or(({ equals, and }) => {
         equals('id', '456');
@@ -46,44 +47,41 @@ describe('CosmosQueryBuilder', () => {
 {
   "parameters": [
     {
+      "name": "@serial",
+      "value": "abc",
+    },
+    {
       "name": "@id",
-      "value": "",
-    },
-    {
-      "name": "@id_2",
-      "value": "123",
-    },
-    {
-      "name": "@id_3",
       "value": [
         "0001",
         "0002",
       ],
     },
     {
-      "name": "@id_4",
+      "name": "@id_2",
       "value": "^hello.*",
     },
     {
-      "name": "@id_5",
+      "name": "@id_3",
       "value": "456",
     },
     {
-      "name": "@id_6",
+      "name": "@id_4",
       "value": "sfdsfd",
     },
   ],
   "query": "SELECT c.id, c.mode, c.serial
 FROM c
-WHERE CONTAINS(c.id, @id, false)
-AND c.id = @id_2
-AND ARRAY_CONTAINS(@id_3, c.id)
-AND RegexMatch(c.id, @id_4, "ix")
+WHERE CONTAINS(c.serial, @serial, false)
+AND c.price <= 123
+AND c.isConnected = true
+AND ARRAY_CONTAINS(@id, c.id)
+AND RegexMatch(c.id, @id_2, "ix")
 AND (
-  c.id = @id_5
+  c.id = @id_3
   OR (
     IS_DEFINED(c.id)
-    AND CONTAINS(c.id, @id_6, false)
+    AND CONTAINS(c.id, @id_4, false)
   )
 )
 ORDER BY c.serial ASC, c.mode DESC
