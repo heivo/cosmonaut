@@ -1,1 +1,1 @@
-export { CosmosQueryBuilder } from './CosmosQueryBuilder';
+export { CosmosQueryBuilder, select } from './CosmosQueryBuilder';

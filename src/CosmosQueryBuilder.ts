@@ -125,12 +125,13 @@ export class CosmosQueryBuilder<T extends Record<string, any>> extends Conjuncti
     this.skip = this.skip.bind(this);
   }
 
-  select<F extends keyof T | '*'>(...fields: F[]): this {
-    this.selection.push(...(fields as string[]));
+  // FIXME: selecting nested fields currently does not work when using rest parameters
+  select<P extends Path<DeepRequired<T>>>(...paths: P[]): this {
+    this.selection.push(...(paths as string[]));
     return this;
   }
 
-  orderBy<P extends Path<T>>(by: P, order: SortOrder = 'ASC'): this {
+  orderBy<P extends Path<DeepRequired<T>>>(by: P, order: SortOrder = 'ASC'): this {
     this.sorting.push({ by: String(by), order });
     return this;
   }
@@ -146,9 +147,10 @@ export class CosmosQueryBuilder<T extends Record<string, any>> extends Conjuncti
   }
 
   build({ pretty = false }: { pretty?: boolean } = {}): SqlQuerySpec {
-    const selectFields = this.selection.includes('*')
-      ? '*'
-      : [...new Set(this.selection)].map((field) => `c.${field}`).join(', ');
+    const selectFields =
+      !this.selection.length || this.selection.includes('*')
+        ? '*'
+        : [...new Set(this.selection)].map((field) => `c.${field}`).join(', ');
     let query = `SELECT ${selectFields}\nFROM c`;
 
     const parameters: SqlParameter[] = [];
@@ -167,7 +169,10 @@ export class CosmosQueryBuilder<T extends Record<string, any>> extends Conjuncti
     }
 
     if (!pretty) {
-      query = query.replace(/\s?\n?\s+/g, ' ').replace(/\( /g, '(').replace(/ \)/g, ')');
+      query = query
+        .replace(/\s?\n?\s+/g, ' ')
+        .replace(/\( /g, '(')
+        .replace(/ \)/g, ')');
     }
 
     return {
@@ -175,4 +180,9 @@ export class CosmosQueryBuilder<T extends Record<string, any>> extends Conjuncti
       parameters,
     };
   }
+}
+
+// FIXME: selecting nested fields currently does not work when using rest parameters
+export function select<T extends Record<string, any> = {}>(...paths: Path<DeepRequired<T>>[]) {
+  return new CosmosQueryBuilder<T>().select(...paths);
 }

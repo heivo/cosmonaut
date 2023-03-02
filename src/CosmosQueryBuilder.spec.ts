@@ -1,4 +1,4 @@
-import { CosmosQueryBuilder } from './CosmosQueryBuilder';
+import { CosmosQueryBuilder, select } from './CosmosQueryBuilder';
 
 interface Asset {
   id: string;
@@ -23,8 +23,7 @@ interface Asset {
 
 describe('CosmosQueryBuilder', () => {
   it('does what I want', () => {
-    const querySpec = new CosmosQueryBuilder<Asset>()
-      .select('serial', 'id', 'mode', 'serial', 'tags')
+    const querySpec = select<Asset>('id', 'mode', 'serial')
       .equals('id', '123')
       .equals('id', ['0001', '0002'])
       .or(({ equals, and }) => {
@@ -37,10 +36,10 @@ describe('CosmosQueryBuilder', () => {
       .orderBy('serial')
       .orderBy('mode', 'DESC')
       .take(10)
-      .build({pretty: true});
+      .build({ pretty: true });
 
     expect(querySpec.query).toMatchInlineSnapshot(`
-"SELECT c.serial, c.id, c.mode, c.tags
+"SELECT c.id, c.mode, c.serial
 FROM c
 WHERE c.id = @id
 AND ARRAY_CONTAINS(@id_2, c.id)
