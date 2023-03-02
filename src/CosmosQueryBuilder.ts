@@ -113,8 +113,22 @@ class DisjunctionQueryBuilder<T extends Record<string, any>> extends BaseQueryBu
 type SortOrder = 'ASC' | 'DESC';
 
 export class CosmosQueryBuilder<T extends Record<string, any>> extends ConjunctionQueryBuilder<DeepRequired<T>> {
+  private selection: string[] = [];
   private sorting: Array<{ by: string; order: SortOrder }> = [];
   private pagination: { take?: number; skip?: number } = {};
+
+  constructor() {
+    super();
+    this.select = this.select.bind(this);
+    this.orderBy = this.orderBy.bind(this);
+    this.take = this.take.bind(this);
+    this.skip = this.skip.bind(this);
+  }
+
+  select<F extends keyof T | '*'>(...fields: F[]): this {
+    this.selection.push(...(fields as string[]));
+    return this;
+  }
 
   orderBy<P extends Path<T>>(by: P, order: SortOrder = 'ASC'): this {
     this.sorting.push({ by: String(by), order });
@@ -131,10 +145,10 @@ export class CosmosQueryBuilder<T extends Record<string, any>> extends Conjuncti
     return this;
   }
 
-  select<F extends keyof T | '*'>(...fields: F[]): SqlQuerySpec {
-    const selectFields = fields.includes('*' as F)
+  build({ pretty = false }: { pretty?: boolean } = {}): SqlQuerySpec {
+    const selectFields = this.selection.includes('*')
       ? '*'
-      : [...new Set(fields)].map((field) => `c.${String(field)}`).join(', ');
+      : [...new Set(this.selection)].map((field) => `c.${field}`).join(', ');
     let query = `SELECT ${selectFields}\nFROM c`;
 
     const parameters: SqlParameter[] = [];
@@ -150,6 +164,10 @@ export class CosmosQueryBuilder<T extends Record<string, any>> extends Conjuncti
 
     if (this.pagination.skip || this.pagination.take) {
       query += `\nOFFSET ${this.pagination.skip ?? 0} LIMIT ${this.pagination.take ?? 999999999}`;
+    }
+
+    if (!pretty) {
+      query = query.replace(/\s?\n?\s+/g, ' ').replace(/\( /g, '(').replace(/ \)/g, ')');
     }
 
     return {

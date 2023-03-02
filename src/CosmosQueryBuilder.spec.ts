@@ -24,14 +24,9 @@ interface Asset {
 describe('CosmosQueryBuilder', () => {
   it('does what I want', () => {
     const querySpec = new CosmosQueryBuilder<Asset>()
+      .select('serial', 'id', 'mode', 'serial', 'tags')
       .equals('id', '123')
-      /* .equals('mode', 'idle')
-      .arrayContains('tags', 'aaa')
-      .equals('price', 123.45) */
       .equals('id', ['0001', '0002'])
-      /* .equals('isConnected', true)
-      .contains('softDeleted.by', 'ihe')
-      .equals('some.deeply.nested.object', 1) */
       .or(({ equals, and }) => {
         equals('id', '456');
         and(({ isDefined, contains }) => {
@@ -42,10 +37,10 @@ describe('CosmosQueryBuilder', () => {
       .orderBy('serial')
       .orderBy('mode', 'DESC')
       .take(10)
-      .select('serial', 'id', 'mode', 'serial');
+      .build({pretty: true});
 
     expect(querySpec.query).toMatchInlineSnapshot(`
-"SELECT c.serial, c.id, c.mode
+"SELECT c.serial, c.id, c.mode, c.tags
 FROM c
 WHERE c.id = @id
 AND ARRAY_CONTAINS(@id_2, c.id)
