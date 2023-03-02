@@ -10,8 +10,20 @@ class BaseQueryBuilder<T extends Record<string, any>> {
 
   constructor() {
     this.equals = this.equals.bind(this);
-    this.contains = this.contains.bind(this);
+    this.notEquals = this.notEquals.bind(this);
+    this.lower = this.lower.bind(this);
+    this.lowerEquals = this.lowerEquals.bind(this);
+    this.greater = this.greater.bind(this);
+    this.greaterEquals = this.greaterEquals.bind(this);
     this.isDefined = this.isDefined.bind(this);
+    this.isUndefined = this.isUndefined.bind(this);
+    this.isNull = this.isNull.bind(this);
+    this.isNotNull = this.isNotNull.bind(this);
+    this.stringEquals = this.stringEquals.bind(this);
+    this.stringRegexMatch = this.stringRegexMatch.bind(this);
+    this.stringContains = this.stringContains.bind(this);
+    this.stringStartsWith = this.stringStartsWith.bind(this);
+    this.stringEndsWith = this.stringEndsWith.bind(this);
     this.arrayContains = this.arrayContains.bind(this);
   }
 
@@ -24,13 +36,87 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     return this;
   }
 
-  contains<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V, ignoreCase = false) {
-    this.addCondition(`CONTAINS($path, $value, ${ignoreCase})`, path, value);
+  notEquals<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V | V[]): this {
+    if (Array.isArray(value)) {
+      this.addCondition(`NOT ARRAY_CONTAINS($value, $path)`, path, value);
+    } else {
+      this.addCondition('$path != $value', path, value);
+    }
+    return this;
+  }
+
+  lower<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V): this {
+    this.addCondition('$path < $value', path, value);
+    return this;
+  }
+
+  lowerEquals<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V): this {
+    this.addCondition('$path <= $value', path, value);
+    return this;
+  }
+
+  greater<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V): this {
+    this.addCondition('$path > $value', path, value);
+    return this;
+  }
+
+  greaterEquals<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V): this {
+    this.addCondition('$path >= $value', path, value);
     return this;
   }
 
   isDefined<P extends Path<T>>(path: P) {
     this.addCondition('IS_DEFINED($path)', path);
+    return this;
+  }
+
+  isUndefined<P extends Path<T>>(path: P) {
+    this.addCondition('NOT IS_DEFINED($path)', path);
+    return this;
+  }
+
+  isNull<P extends Path<T>>(path: P) {
+    this.addCondition('IS_NULL($path)', path);
+    return this;
+  }
+
+  isNotNull<P extends Path<T>>(path: P) {
+    this.addCondition('NOT IS_NULL($path)', path);
+    return this;
+  }
+
+  stringEquals<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V & string, ignoreCase = false) {
+    this.addCondition(`STRINGEQUALS($path, $value, ${ignoreCase})`, path, value);
+    return this;
+  }
+
+  stringRegexMatch<P extends Path<T>, V extends PathValue<T, P>>(
+    path: P,
+    value: V & string,
+    {
+      ignoreCase = false,
+      multiline = false,
+      dotAll = false,
+      ignoreWhitespace = false,
+    }: { ignoreCase?: boolean; multiline?: boolean; dotAll?: boolean; ignoreWhitespace?: boolean } = {}
+  ) {
+    const flags = `${ignoreCase ? 'i' : ''}${multiline ? 'm' : ''}${dotAll ? 's' : ''}${ignoreWhitespace ? 'x' : ''}`;
+    this.addCondition(`RegexMatch($path, $value, "${flags}")`, path, value);
+    return this;
+  }
+
+  stringContains<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V & string, ignoreCase = false) {
+    this.addCondition(`CONTAINS($path, $value, ${ignoreCase})`, path, value);
+    return this;
+  }
+
+  stringStartsWith<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V & string, ignoreCase = false) {
+    this.addCondition(`STARTSWITH($path, $value, ${ignoreCase})`, path, value);
+    return this;
+  }
+
+  stringEndsWith<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V & string, ignoreCase = false) {
+    this.addCondition(`ENDSWITH($path, $value, ${ignoreCase})`, path, value);
     return this;
   }
 
@@ -126,6 +212,7 @@ export class CosmosQueryBuilder<
     this.orderBy = this.orderBy.bind(this);
     this.take = this.take.bind(this);
     this.skip = this.skip.bind(this);
+    this.query = this.query.bind(this);
   }
 
   select<F extends keyof T, NewS extends Pick<S, F>>(...fields: F[]): CosmosQueryBuilder<T, NewS> {
