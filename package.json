@@ -4,7 +4,8 @@
   "description": "A CosmosDB query builder library",
   "main": "src/index.ts",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "build": "tsc"
   },
   "author": "Ivo Heidelbach",
   "license": "MIT",

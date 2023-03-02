@@ -4,8 +4,11 @@
     "module": "commonjs",
     "target": "ES2021",
     "rootDir": "./src",
+    "outDir": "./dist",
+    "declaration": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true
-  }
+  },
+  "exclude": ["**/*.spec.ts"]
 }
