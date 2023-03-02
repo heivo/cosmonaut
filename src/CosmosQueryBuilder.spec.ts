@@ -30,6 +30,7 @@ describe('CosmosQueryBuilder', () => {
       .lowerEquals('price', 123)
       .equals('isConnected', true)
       .equals('id', ['0001', '0002'])
+      .arrayContains('tags', 'asd')
       .or(({ equals, and }) => {
         equals('id', '456');
         and(({ isDefined, stringContains }) => {
@@ -58,6 +59,10 @@ describe('CosmosQueryBuilder', () => {
       ],
     },
     {
+      "name": "@tags",
+      "value": "asd",
+    },
+    {
       "name": "@id_2",
       "value": "^hello.*",
     },
@@ -76,6 +81,7 @@ WHERE CONTAINS(c.serial, @serial, false)
 AND c.price <= 123
 AND c.isConnected = true
 AND ARRAY_CONTAINS(@id, c.id)
+AND ARRAY_CONTAINS(c.tags, @tags)
 AND RegexMatch(c.id, @id_2, "ix")
 AND (
   c.id = @id_3

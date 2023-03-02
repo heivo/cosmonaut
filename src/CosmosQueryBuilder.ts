@@ -85,14 +85,18 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     return this;
   }
 
-  stringEquals<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V & string, ignoreCase = false) {
+  stringEquals<P extends Exclude<Path<T>, V extends string ? never : P>, V extends PathValue<T, P>>(
+    path: P,
+    value: V,
+    ignoreCase = false
+  ) {
     this.addCondition(`STRINGEQUALS($path, $value, ${ignoreCase})`, path, value);
     return this;
   }
 
-  stringRegexMatch<P extends Path<T>, V extends PathValue<T, P>>(
+  stringRegexMatch<P extends Exclude<Path<T>, V extends string ? never : P>, V extends PathValue<T, P>>(
     path: P,
-    value: V & string,
+    value: V,
     {
       ignoreCase = false,
       multiline = false,
@@ -105,22 +109,37 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     return this;
   }
 
-  stringContains<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V & string, ignoreCase = false) {
+  stringContains<P extends Exclude<Path<T>, V extends string ? never : P>, V extends PathValue<T, P>>(
+    path: P,
+    value: V & string,
+    ignoreCase = false
+  ) {
     this.addCondition(`CONTAINS($path, $value, ${ignoreCase})`, path, value);
     return this;
   }
 
-  stringStartsWith<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V & string, ignoreCase = false) {
+  stringStartsWith<P extends Exclude<Path<T>, V extends string ? never : P>, V extends PathValue<T, P>>(
+    path: P,
+    value: V & string,
+    ignoreCase = false
+  ) {
     this.addCondition(`STARTSWITH($path, $value, ${ignoreCase})`, path, value);
     return this;
   }
 
-  stringEndsWith<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V & string, ignoreCase = false) {
+  stringEndsWith<P extends Exclude<Path<T>, V extends string ? never : P>, V extends PathValue<T, P>>(
+    path: P,
+    value: V & string,
+    ignoreCase = false
+  ) {
     this.addCondition(`ENDSWITH($path, $value, ${ignoreCase})`, path, value);
     return this;
   }
 
-  arrayContains<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: ArrayElement<V>) {
+  arrayContains<P extends Exclude<Path<T>, V extends any[] ? never : P>, V extends PathValue<T, P>>(
+    path: P,
+    value: ArrayElement<V>
+  ) {
     this.addCondition(`ARRAY_CONTAINS($path, $value)`, path, value);
     return this;
   }
