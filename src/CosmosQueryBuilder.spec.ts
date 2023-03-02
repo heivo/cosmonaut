@@ -1,46 +1,35 @@
 import { CosmosClient } from '@azure/cosmos';
 import { CosmosQueryBuilder } from './CosmosQueryBuilder';
 
-interface Asset {
+interface Machine {
   id: string;
   serial: string;
   isConnected: boolean;
-  mode: 'idle' | 'running';
-  softDeleted?: {
-    by: string;
-    at: string;
-  };
-  price: number;
-  optional?: boolean;
+  price?: number;
+  mode: 'idle' | 'running' | 'error';
   tags: string[];
-  some: {
-    deeply: {
-      nested: {
-        object: number;
-      };
-    };
+  softDeleted?: {
+    atDate: string;
+    byUser: string;
   };
 }
 
 describe('CosmosQueryBuilder', () => {
   it('does what I want', () => {
-    const querySpec = new CosmosQueryBuilder<Asset>()
-      .select('id', 'mode', 'serial')
-      .stringContains('serial', 'abc')
-      .lowerEquals('price', 123)
+    const querySpec = new CosmosQueryBuilder<Machine>()
+      .select('id', 'mode', 'serial', 'isConnected')
+      .stringMatchesRegex('id', '^0001-abc-.*', { ignoreCase: true })
       .equals('isConnected', true)
-      .equals('id', ['0001', '0002'])
-      .arrayContains('tags', 'asd')
-      .or(({ equals, and }) => {
-        equals('id', '456');
-        and(({ isDefined, stringContains }) => {
-          isDefined('id');
-          stringContains('id', 'sfdsfd');
+      .equals('mode', ['idle', 'running'])
+      .lower('price', 100)
+      .or((d) => {
+        d.isUndefined('softDeleted');
+        d.and((c) => {
+          c.isDefined('softDeleted');
+          c.lower('softDeleted.atDate', '2023-03-01');
         });
       })
-      .stringRegexMatch('id', '^hello.*', { ignoreCase: true, ignoreWhitespace: true })
       .orderBy('serial')
-      .orderBy('mode', 'DESC')
       .take(10)
       .build({ pretty: true });
 
@@ -48,49 +37,35 @@ describe('CosmosQueryBuilder', () => {
 {
   "parameters": [
     {
-      "name": "@serial",
-      "value": "abc",
+      "name": "@id",
+      "value": "^0001-abc-.*",
     },
     {
-      "name": "@id",
+      "name": "@mode",
       "value": [
-        "0001",
-        "0002",
+        "idle",
+        "running",
       ],
     },
     {
-      "name": "@tags",
-      "value": "asd",
-    },
-    {
-      "name": "@id_2",
-      "value": "^hello.*",
-    },
-    {
-      "name": "@id_3",
-      "value": "456",
-    },
-    {
-      "name": "@id_4",
-      "value": "sfdsfd",
+      "name": "@softDeleted_atDate",
+      "value": "2023-03-01",
     },
   ],
-  "query": "SELECT c.id, c.mode, c.serial
+  "query": "SELECT c.id, c.mode, c.serial, c.isConnected
 FROM c
-WHERE CONTAINS(c.serial, @serial, false)
-AND c.price <= 123
+WHERE RegexMatch(c.id, @id, "i")
 AND c.isConnected = true
-AND ARRAY_CONTAINS(@id, c.id)
-AND ARRAY_CONTAINS(c.tags, @tags)
-AND RegexMatch(c.id, @id_2, "ix")
+AND ARRAY_CONTAINS(@mode, c.mode)
+AND c.price < 100
 AND (
-  c.id = @id_3
+  NOT IS_DEFINED(c.softDeleted)
   OR (
-    IS_DEFINED(c.id)
-    AND CONTAINS(c.id, @id_4, false)
+    IS_DEFINED(c.softDeleted)
+    AND c.softDeleted.atDate < @softDeleted_atDate
   )
 )
-ORDER BY c.serial ASC, c.mode DESC
+ORDER BY c.serial ASC
 OFFSET 0 LIMIT 10",
 }
 `);
@@ -98,7 +73,7 @@ OFFSET 0 LIMIT 10",
 
   it.skip('can query', async () => {
     const container = new CosmosClient('').database('').container('');
-    const { resources } = await new CosmosQueryBuilder<Asset>()
+    const { resources } = await new CosmosQueryBuilder<Machine>()
       .select('id', 'mode', 'isConnected')
       .equals('id', '123')
       .query(container)

@@ -20,10 +20,10 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     this.isNull = this.isNull.bind(this);
     this.isNotNull = this.isNotNull.bind(this);
     this.stringEquals = this.stringEquals.bind(this);
-    this.stringRegexMatch = this.stringRegexMatch.bind(this);
     this.stringContains = this.stringContains.bind(this);
     this.stringStartsWith = this.stringStartsWith.bind(this);
     this.stringEndsWith = this.stringEndsWith.bind(this);
+    this.stringMatchesRegex = this.stringMatchesRegex.bind(this);
     this.arrayContains = this.arrayContains.bind(this);
   }
 
@@ -94,21 +94,6 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     return this;
   }
 
-  stringRegexMatch<P extends Exclude<Path<T>, V extends string ? never : P>, V extends PathValue<T, P>>(
-    path: P,
-    value: V,
-    {
-      ignoreCase = false,
-      multiline = false,
-      dotAll = false,
-      ignoreWhitespace = false,
-    }: { ignoreCase?: boolean; multiline?: boolean; dotAll?: boolean; ignoreWhitespace?: boolean } = {}
-  ) {
-    const flags = `${ignoreCase ? 'i' : ''}${multiline ? 'm' : ''}${dotAll ? 's' : ''}${ignoreWhitespace ? 'x' : ''}`;
-    this.addCondition(`RegexMatch($path, $value, "${flags}")`, path, value);
-    return this;
-  }
-
   stringContains<P extends Exclude<Path<T>, V extends string ? never : P>, V extends PathValue<T, P>>(
     path: P,
     value: V & string,
@@ -133,6 +118,21 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     ignoreCase = false
   ) {
     this.addCondition(`ENDSWITH($path, $value, ${ignoreCase})`, path, value);
+    return this;
+  }
+
+  stringMatchesRegex<P extends Exclude<Path<T>, V extends string ? never : P>, V extends PathValue<T, P>>(
+    path: P,
+    value: V,
+    {
+      ignoreCase = false,
+      multiline = false,
+      dotAll = false,
+      ignoreWhitespace = false,
+    }: { ignoreCase?: boolean; multiline?: boolean; dotAll?: boolean; ignoreWhitespace?: boolean } = {}
+  ) {
+    const flags = `${ignoreCase ? 'i' : ''}${multiline ? 'm' : ''}${dotAll ? 's' : ''}${ignoreWhitespace ? 'x' : ''}`;
+    this.addCondition(`RegexMatch($path, $value, "${flags}")`, path, value);
     return this;
   }
 
