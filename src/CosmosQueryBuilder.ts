@@ -1,4 +1,4 @@
-import { SqlParameter, SqlQuerySpec } from '@azure/cosmos';
+import { Container, SqlParameter, SqlQuerySpec } from '@azure/cosmos';
 import { ArrayElement, DeepRequired, Path, PathValue } from './typeHelpers';
 
 const TAB = '  ';
@@ -112,7 +112,10 @@ class DisjunctionQueryBuilder<T extends Record<string, any>> extends BaseQueryBu
 
 type SortOrder = 'ASC' | 'DESC';
 
-export class CosmosQueryBuilder<T extends Record<string, any>> extends ConjunctionQueryBuilder<DeepRequired<T>> {
+export class CosmosQueryBuilder<
+  T extends Record<string, any>,
+  S extends Pick<T, any> = T
+> extends ConjunctionQueryBuilder<DeepRequired<T>> {
   private selection: string[] = [];
   private sorting: Array<{ by: string; order: SortOrder }> = [];
   private pagination: { take?: number; skip?: number } = {};
@@ -125,9 +128,9 @@ export class CosmosQueryBuilder<T extends Record<string, any>> extends Conjuncti
     this.skip = this.skip.bind(this);
   }
 
-  // FIXME: selecting nested fields currently does not work when using rest parameters
-  select<P extends Path<DeepRequired<T>>>(...paths: P[]): this {
-    this.selection.push(...(paths as string[]));
+  select<F extends keyof T, NewS extends Pick<S, F>>(...fields: F[]): CosmosQueryBuilder<T, NewS> {
+    this.selection.push(...(fields as string[]));
+    // @ts-ignore
     return this;
   }
 
@@ -147,10 +150,9 @@ export class CosmosQueryBuilder<T extends Record<string, any>> extends Conjuncti
   }
 
   build({ pretty = false }: { pretty?: boolean } = {}): SqlQuerySpec {
-    const selectFields =
-      !this.selection.length || this.selection.includes('*')
-        ? '*'
-        : [...new Set(this.selection)].map((field) => `c.${field}`).join(', ');
+    const selectFields = this.selection.length
+      ? [...new Set(this.selection)].map((field) => `c.${field}`).join(', ')
+      : '*';
     let query = `SELECT ${selectFields}\nFROM c`;
 
     const parameters: SqlParameter[] = [];
@@ -180,9 +182,9 @@ export class CosmosQueryBuilder<T extends Record<string, any>> extends Conjuncti
       parameters,
     };
   }
-}
 
-// FIXME: selecting nested fields currently does not work when using rest parameters
-export function select<T extends Record<string, any> = {}>(...paths: Path<DeepRequired<T>>[]) {
-  return new CosmosQueryBuilder<T>().select(...paths);
+  query(container: Container) {
+    const querySpec = this.build();
+    return container.items.query<S>(querySpec);
+  }
 }

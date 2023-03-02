@@ -1,4 +1,5 @@
-import { CosmosQueryBuilder, select } from './CosmosQueryBuilder';
+import { CosmosClient } from '@azure/cosmos';
+import { CosmosQueryBuilder } from './CosmosQueryBuilder';
 
 interface Asset {
   id: string;
@@ -23,7 +24,8 @@ interface Asset {
 
 describe('CosmosQueryBuilder', () => {
   it('does what I want', () => {
-    const querySpec = select<Asset>('id', 'mode', 'serial')
+    const querySpec = new CosmosQueryBuilder<Asset>()
+      .select('id', 'mode', 'serial')
       .equals('id', '123')
       .equals('id', ['0001', '0002'])
       .or(({ equals, and }) => {
@@ -77,5 +79,14 @@ OFFSET 0 LIMIT 10"
   },
 ]
 `);
+  });
+
+  it('can query', async () => {
+    const container = new CosmosClient('').database('').container('');
+    const { resources } = await new CosmosQueryBuilder<Asset>()
+      .select('id', 'mode', 'isConnected')
+      .equals('id', '123')
+      .query(container)
+      .fetchAll();
   });
 });
