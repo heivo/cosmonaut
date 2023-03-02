@@ -15,8 +15,8 @@ interface Machine {
   mode: 'idle' | 'running';
   tags: string[];
   softDeleted?: {
-    at: string;
-    by: string;
+    atDate: string;
+    byUser: string;
   };
 }
 ```
@@ -47,10 +47,10 @@ The result is a `QuerySpec` that you can pass to the `Items.query()` function of
 
 ```json
 {
-  "query": `
+  "query": "
     SELECT c.id, c.mode, c.serial, c.isConnected
     FROM c
-    WHERE RegexMatch(c.id, @id, "i")
+    WHERE RegexMatch(c.id, @id, \"i\")
     AND c.isConnected = true
     AND ARRAY_CONTAINS(@mode, c.mode)
     AND c.price < 100
@@ -63,7 +63,7 @@ The result is a `QuerySpec` that you can pass to the `Items.query()` function of
     )
     ORDER BY c.serial ASC
     OFFSET 20 LIMIT 10
-  `,
+  ",
   "parameters": [
     { "name": "@id", "value": "^0001-abc-.*" },
     { "name": "@mode", "value": ["idle", "running"] },
