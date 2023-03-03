@@ -1,4 +1,4 @@
-import { Container, SqlParameter, SqlQuerySpec } from '@azure/cosmos';
+import { Container, SqlParameter, SqlQuerySpec, JSONValue } from '@azure/cosmos';
 import { ArrayElement, DeepRequired, Path, PathValue } from './typeHelpers';
 
 const TAB = '  ';
@@ -90,7 +90,7 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     value: V,
     ignoreCase = false
   ) {
-    this.addCondition(`STRINGEQUALS($path, $value, ${ignoreCase})`, path, value);
+    this.addCondition(`STRINGEQUALS($path, $value, ${String(ignoreCase)})`, path, value);
     return this;
   }
 
@@ -99,7 +99,7 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     value: V & string,
     ignoreCase = false
   ) {
-    this.addCondition(`CONTAINS($path, $value, ${ignoreCase})`, path, value);
+    this.addCondition(`CONTAINS($path, $value, ${String(ignoreCase)})`, path, value);
     return this;
   }
 
@@ -108,7 +108,7 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     value: V & string,
     ignoreCase = false
   ) {
-    this.addCondition(`STARTSWITH($path, $value, ${ignoreCase})`, path, value);
+    this.addCondition(`STARTSWITH($path, $value, ${String(ignoreCase)})`, path, value);
     return this;
   }
 
@@ -117,7 +117,7 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     value: V & string,
     ignoreCase = false
   ) {
-    this.addCondition(`ENDSWITH($path, $value, ${ignoreCase})`, path, value);
+    this.addCondition(`ENDSWITH($path, $value, ${String(ignoreCase)})`, path, value);
     return this;
   }
 
@@ -185,7 +185,7 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     while (parameters.some((p) => p.name === paramName)) {
       paramName = `${baseName}_${++counter}`;
     }
-    parameters.push({ name: paramName, value });
+    parameters.push({ name: paramName, value: value as JSONValue });
     return paramName;
   }
 }
@@ -241,7 +241,7 @@ export class CosmosQueryBuilder<
 
   select<F extends keyof T, NewS extends Pick<S, F>>(...fields: F[]): CosmosQueryBuilder<T, NewS> {
     this.selection.push(...(fields as string[]));
-    // @ts-ignore
+    // @ts-ignore required for well-typed response when using the query() function
     return this;
   }
 

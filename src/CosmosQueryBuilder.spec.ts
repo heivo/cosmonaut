@@ -73,6 +73,7 @@ OFFSET 0 LIMIT 10",
 
   it.skip('can query', async () => {
     const container = new CosmosClient('').database('').container('');
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { resources } = await new CosmosQueryBuilder<Machine>()
       .select('id', 'mode', 'isConnected')
       .equals('id', '123')
