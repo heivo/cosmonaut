@@ -1,6 +1,6 @@
 {
   "name": "@heivo/cosmonaut",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "A CosmosDB query builder library for Node",
   "author": "Ivo Heidelbach",
   "license": "MIT",
