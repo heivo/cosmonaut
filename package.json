@@ -13,6 +13,7 @@
     "README.md",
     "package.json"
   ],
+  "sideEffects": false,
   "scripts": {
     "test": "jest",
     "build": "rimraf ./dist && tsc"

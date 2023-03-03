@@ -43,7 +43,7 @@ const querySpec = new CosmosQueryBuilder<Machine>()
   .build({ pretty: true });
 ```
 
-The result is a `QuerySpec` that you can pass to the `Items.query()` function of [Azure Cosmos DB client library](https://www.npmjs.com/package/@azure/cosmos).
+The result is a `QuerySpec` that you can pass to the `Items.query()` function of [Azure Cosmos DB client library](https://www.npmjs.com/package/@azure/cosmos#query-the-database).
 
 ```json
 {
@@ -97,7 +97,7 @@ By default the whole document is selected with `SELECT * from c`. The `select()`
 
 #### Equals
 
-`.equals(path, value)`
+`.equals(path: Path, value: PathValue)`
 
 ```ts
 .equals('id', '00001'); // "id" must be exactly "00001"
@@ -106,7 +106,7 @@ By default the whole document is selected with `SELECT * from c`. The `select()`
 
 #### Not equals
 
-`.notEquals(path, value)`
+`.notEquals(path: Path, value: PathValue)`
 
 ```ts
 .notEquals('id', '00001'); // "id" must not be "00001"
@@ -115,7 +115,7 @@ By default the whole document is selected with `SELECT * from c`. The `select()`
 
 #### Lower
 
-`.lower(path, value)`
+`.lower(path: Path, value: PathValue)`
 
 ```ts
 .lower('price', 100); // "price" must be lower than 100
@@ -123,7 +123,7 @@ By default the whole document is selected with `SELECT * from c`. The `select()`
 
 #### Lower equals
 
-`.lowerEquals(path, value)`
+`.lowerEquals(path: Path, value: PathValue)`
 
 ```ts
 .lowerEquals('price', 100); // "price" must be lower or equal to 100
@@ -131,7 +131,7 @@ By default the whole document is selected with `SELECT * from c`. The `select()`
 
 #### Greater
 
-`.greater(path, value)`
+`.greater(path: Path, value: PathValue)`
 
 ```ts
 .greater('price', 100); // "price" must be greater than 100
@@ -139,7 +139,7 @@ By default the whole document is selected with `SELECT * from c`. The `select()`
 
 #### Greater equals
 
-`.greaterEquals(path, value)`
+`.greaterEquals(path: Path, value: PathValue)`
 
 ```ts
 .greaterEquals('price', 100); // "price" must be greater or equal to 100
@@ -147,7 +147,7 @@ By default the whole document is selected with `SELECT * from c`. The `select()`
 
 #### Is defined
 
-`.isDefined(path)`
+`.isDefined(path: Path)`
 
 ```ts
 .isDefined('price'); // "price" must be defined
@@ -155,7 +155,7 @@ By default the whole document is selected with `SELECT * from c`. The `select()`
 
 #### Is undefined
 
-`.isUndefined(path)`
+`.isUndefined(path: Path)`
 
 ```ts
 .isUndefined('price'); // "price" must not be defined
@@ -163,7 +163,7 @@ By default the whole document is selected with `SELECT * from c`. The `select()`
 
 #### Is null
 
-`.isNull(path)`
+`.isNull(path: Path)`
 
 ```ts
 .isNull('price'); // "price" must be null
@@ -171,7 +171,7 @@ By default the whole document is selected with `SELECT * from c`. The `select()`
 
 #### Is not null
 
-`.isNotNull(path)`
+`.isNotNull(path: Path)`
 
 ```ts
 .isNotNull('price'); // "price" must not be null
@@ -179,7 +179,7 @@ By default the whole document is selected with `SELECT * from c`. The `select()`
 
 #### String equals
 
-`.stringEquals(path, value, ignoreCase)`
+`.stringEquals(path: Path, value: PathValue, ignoreCase?: boolean)`
 
 ```ts
 .stringEquals('serial', 'a0001'); // "serial" must match exactly "a0001"
@@ -188,7 +188,7 @@ By default the whole document is selected with `SELECT * from c`. The `select()`
 
 #### String contains
 
-`.stringContains(path, value, ignoreCase)`
+`.stringContains(path: Path, value: PathValue, ignoreCase?: boolean)`
 
 ```ts
 .stringContains('serial', 'a0'); // "serial" must contain "a0"
@@ -197,7 +197,7 @@ By default the whole document is selected with `SELECT * from c`. The `select()`
 
 #### String starts with
 
-`.stringStartsWith(path, value, ignoreCase)`
+`.stringStartsWith(path: Path, value: PathValue, ignoreCase?: boolean)`
 
 ```ts
 .stringStartsWith('serial', 'a0'); // "serial" must start with "a0"
@@ -206,7 +206,7 @@ By default the whole document is selected with `SELECT * from c`. The `select()`
 
 #### String ends with
 
-`.stringEndsWith(path, value, ignoreCase)`
+`.stringEndsWith(path: Path, value: PathValue, ignoreCase?: boolean)`
 
 ```ts
 .stringEndsWith('serial', 'a0'); // "serial" must end with "a0"
@@ -215,7 +215,7 @@ By default the whole document is selected with `SELECT * from c`. The `select()`
 
 #### String matches regular expression
 
-`.stringMatchesRegex(path, value, ignoreCase)`
+`.stringMatchesRegex(path: Path, value: PathValue, flags?: { ignoreCase?: boolean, multiline?: boolean, dotAll?: boolean, ignoreWhitespace?: boolean })`
 
 ```ts
 .stringMatchesRegex('serial', '^a.*'); // "serial" must match the regular expression "^a.*"
@@ -236,7 +236,7 @@ e.g.
 
 #### Array contains
 
-`.arrayContains(path, value)`
+`.arrayContains(path: Path, value: PathValue)`
 
 ```ts
 .arrayContains('tags', 'new'); // "tags" array must contain "new"
@@ -246,7 +246,7 @@ e.g.
 
 #### Or
 
-`.or(disjunction => void)`
+`.or((disjunction: NestedCosmosQueryBuilder) => void)`
 
 Can only be used within a nested conjunction (AND) or in the root query builder.
 
@@ -271,7 +271,7 @@ Can only be used within a nested conjunction (AND) or in the root query builder.
 
 #### And
 
-`.and(conjunction => void)`
+`.and((conjunction: NestedCosmosQueryBuilder) => void)`
 
 Can only be used within a nested disjunction (OR).
 
@@ -284,7 +284,7 @@ Can only be used within a nested disjunction (OR).
 
 ### Sorting
 
-`.orderBy(path, direction)`
+`.orderBy(path: Path, direction?: 'ASC' | 'DESC')`
 
 ```ts
 .orderBy('serial'); // order by "serial", default ascending
@@ -298,7 +298,7 @@ Pagination only makes sense in combination with sorting, otherwise the result wi
 
 #### Take
 
-`.take(value)`
+`.take(value: number)`
 
 ```ts
 .take(5); // limit the result to 5 items
@@ -306,7 +306,7 @@ Pagination only makes sense in combination with sorting, otherwise the result wi
 
 #### Skip
 
-`.skip(value)`
+`.skip(value: number)`
 
 ```ts
 .skip(10); // skip the first 10 entries
@@ -318,7 +318,7 @@ You can either use the `build()` function to create a `QuerySpec` that can be pa
 
 #### Build query spec
 
-`.build(options)`
+`.build(options?: { pretter?: boolean, noParams? boolean })`
 
 ```ts
 const querySpec = build({ pretty: true }); // pretty-prints the SQL
@@ -327,7 +327,7 @@ const querySpec = build({ noParams: true }); // inlines all values in the query,
 
 #### Execute the query
 
-`.query(container)`
+`.query(container: Container)`
 
 ```ts
 const container = new CosmosClient('').database('').container('');
