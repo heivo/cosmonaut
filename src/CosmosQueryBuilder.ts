@@ -1,4 +1,5 @@
 import { Container, SqlParameter, SqlQuerySpec, JSONValue } from '@azure/cosmos';
+import { unpretty } from './helpers';
 import { ArrayElement, DeepRequired, Path, PathValue } from './typeHelpers';
 
 const TAB = '  ';
@@ -236,7 +237,7 @@ export class CosmosQueryBuilder<
     this.orderBy = this.orderBy.bind(this);
     this.take = this.take.bind(this);
     this.skip = this.skip.bind(this);
-    this.query = this.query.bind(this);
+    this.build = this.build.bind(this);
   }
 
   select<F extends keyof T, NewS extends Pick<S, F>>(...fields: F[]): CosmosQueryBuilder<T, NewS> {
@@ -272,13 +273,14 @@ export class CosmosQueryBuilder<
      * Warning: should not be used in production to avoid SQL injection
      */
     noParams?: boolean;
-  } = {}): SqlQuerySpec {
+  } = {}) {
     const selectFields = this.selection.length
       ? [...new Set(this.selection)].map((field) => `c.${field}`).join(', ')
       : '*';
     let query = `SELECT ${selectFields}\nFROM c`;
 
-    const { conditionsExpression, parameters } = this.getConditionsExpression(noParams);
+    // eslint-disable-next-line prefer-const
+    let { conditionsExpression, parameters } = this.getConditionsExpression(noParams);
     if (conditionsExpression.length) {
       query += `\nWHERE ${conditionsExpression}`;
     }
@@ -293,20 +295,17 @@ export class CosmosQueryBuilder<
     }
 
     if (!pretty) {
-      query = query
-        .replace(/\s?\n?\s+/g, ' ')
-        .replace(/\( /g, '(')
-        .replace(/ \)/g, ')');
+      query = unpretty(query);
+      conditionsExpression = unpretty(conditionsExpression);
     }
 
-    return {
-      query,
-      parameters,
-    };
-  }
+    const querySpec: SqlQuerySpec = { query, parameters };
 
-  query(container: Container) {
-    const querySpec = this.build();
-    return container.items.query<S>(querySpec);
+    return {
+      querySpec,
+      conditionsExpression,
+      parameters,
+      query: (container: Container) => container.items.query<S>(querySpec),
+    };
   }
 }

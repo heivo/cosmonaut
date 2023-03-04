@@ -24,7 +24,7 @@ interface Machine {
 You can can write a query like this:
 
 ```ts
-const querySpec = new CosmosQueryBuilder<Machine>()
+const { querySpec } = new CosmosQueryBuilder<Machine>()
   .select('id', 'mode', 'serial', 'isConnected')
   .stringMatchesRegex('id', '^0001-abc-.*', { ignoreCase: true })
   .equals('isConnected', true)
@@ -43,7 +43,7 @@ const querySpec = new CosmosQueryBuilder<Machine>()
   .build({ pretty: true });
 ```
 
-The result is a `QuerySpec` that you can pass to the `Items.query()` function of [Azure Cosmos DB client library](https://www.npmjs.com/package/@azure/cosmos#query-the-database).
+The result is a `SqlQuerySpec` that you can pass to the `Items.query()` function of [Azure Cosmos DB client library](https://www.npmjs.com/package/@azure/cosmos#query-the-database).
 
 ```json
 {
@@ -76,11 +76,11 @@ The result is a `QuerySpec` that you can pass to the `Items.query()` function of
 const { resources } = await container.items.query<Machine>(querySpec);
 ```
 
-Alternatively you can pass the Cosmos container directly to the query builders `query()` function and retrieve a well-typed response:
+Alternatively you can pass the Cosmos container directly to the returned `query()` function and retrieve a well-typed response:
 
 ```ts
 // resources is of type Pick<Machine, "id" | "mode" | "serial">[]
-const { resources } = await new CosmosQueryBuilder<Machine>().select('id', 'mode', 'serial').query(container);
+const { resources } = await new CosmosQueryBuilder<Machine>().select('id', 'mode', 'serial').build().query(container);
 ```
 
 ## API
@@ -312,29 +312,53 @@ Pagination only makes sense in combination with sorting, otherwise the result wi
 .skip(10); // skip the first 10 entries
 ```
 
-### Querying
-
-You can either use the `build()` function to create a `QuerySpec` that can be passed to the `Items.query(querySpec)` function or use the `query(container)` function to execute the query and retrieve a well-typed response.
-
-#### Build query spec
-
-`.build(options?: { pretter?: boolean, noParams? boolean })`
+### Building
 
 ```ts
-const querySpec = build({ pretty: true }); // pretty-prints the SQL
-const querySpec = build({ noParams: true }); // inlines all values in the query, this is useful for testing it in the CosmosDB Data Explorer but should not be used in production to avoid SQL injection
+.build(options?: {
+  pretty?: boolean, // pretty-prints the query and conditions expression
+  noParams? boolean, // inlines all values in the query, this is useful for testing it in the CosmosDB Data Explorer but should not be used in production to avoid SQL injection
+}): {
+  querySpec: SqlQuerySpec,
+  conditionsExpression: string,
+  parameters: SqlParameter[],
+  query: (container: Container => QueryIterator)
+}
 ```
 
-#### Execute the query
+The `.build()` functions returns an object that has a
 
-`.query(container: Container)`
+- `querySpec: SqlQuerySpec` that can be passed to `Items.query(querySpec)` from the `@azure/cosmos` client library
+- `conditionsExpression: string` that can be used to manually construct the full query, use alongside with:
+- `parameters: SqlParameter[]`
+- `query: (container: Container) => QueryIterator` a function where you pass the `@azure/cosmos` container instance to retrieve a well-typed `QueryIterator`
+
+#### Using `querySpec`
 
 ```ts
 const container = new CosmosClient('').database('').container('');
+const { querySpec } = queryBuilder.build();
+const { resources } = await container.items.query<Machine>(querySpec);
+```
 
+#### Using `conditionsExpression` and `parameters`
+
+```ts
+const container = new CosmosClient('').database('').container('');
+const { conditionsExpression, parameters } = queryBuilder.build();
+const query = `SELECT c.mode, COUNT(c.id) FROM c WHERE ${conditionsExpression}`;
+const { resources } = await container.items.query<Machine>({ query, parameters }).fetchAll();
+```
+
+#### Using `query()`
+
+The problem with the upper two approaches is that you have to manually contruct a type interface that matches the returned resources when using the `.select()` function.
+
+By using the `.query()` function Typescript can automatically infer the right type:
+
+```ts
+const container = new CosmosClient('').database('').container('');
+const { query } = queryBuilder.select('id', 'mode', 'isConnected').build();
 // resources is of type Pick<Machine, "id" | "mode" | "isConnected">[]
-const { resources } = await new CosmosQueryBuilder<Machine>()
-  .select('id', 'mode', 'isConnected')
-  .query(container)
-  .fetchAll();
+const { resources } = await query(container).fetchAll();
 ```

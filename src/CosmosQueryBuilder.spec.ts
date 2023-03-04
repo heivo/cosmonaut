@@ -16,7 +16,7 @@ interface Machine {
 
 describe('CosmosQueryBuilder', () => {
   it('does what I want', () => {
-    const querySpec = new CosmosQueryBuilder<Machine>()
+    const { querySpec } = new CosmosQueryBuilder<Machine>()
       .select('id', 'mode', 'serial', 'isConnected')
       .stringMatchesRegex('id', '^0001-abc-.*', { ignoreCase: true })
       .equals('isConnected', true)
@@ -77,6 +77,7 @@ OFFSET 0 LIMIT 10",
     const { resources } = await new CosmosQueryBuilder<Machine>()
       .select('id', 'mode', 'isConnected')
       .equals('id', '123')
+      .build()
       .query(container)
       .fetchAll();
   });
