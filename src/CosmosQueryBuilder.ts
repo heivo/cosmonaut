@@ -1,6 +1,6 @@
-import { Container, SqlParameter, SqlQuerySpec, JSONValue } from '@azure/cosmos';
+import type { Container, SqlParameter, SqlQuerySpec, JSONValue } from '@azure/cosmos';
 import { unpretty } from './helpers';
-import { ArrayElement, DeepRequired, Path, PathValue } from './typeHelpers';
+import type { ArrayElement, DeepRequired, Path, PathValue } from './typeHelpers';
 
 const TAB = '  ';
 

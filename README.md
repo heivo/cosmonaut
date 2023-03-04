@@ -1,6 +1,23 @@
 # Cosmonaut
 
-A type-safe CosmosDB query builder library for Node.
+A type-safe CosmosDB query builder library for Node to be used alongside with the `@azure/cosmos` client library.
+
+## Installation
+
+```bash
+npm i @heivo/cosmonaut
+```
+
+or
+
+```bash
+yarn add @heivo/cosmonaut
+```
+
+This library has no dependencies and 2 optional peer dependencies:
+
+- `typescript`: while it's possible to use this without Typescript you'd lose many of the benefits that it provides
+- `@azure/cosmos`: we only import types from this
 
 ## Example usage
 
