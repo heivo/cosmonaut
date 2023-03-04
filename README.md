@@ -346,7 +346,7 @@ const { resources } = await container.items.query<Machine>(querySpec);
 ```ts
 const container = new CosmosClient('').database('').container('');
 const { conditionsExpression, parameters } = queryBuilder.build();
-const query = `SELECT c.mode, COUNT(c.id) FROM c WHERE ${conditionsExpression}`;
+const query = `SELECT c.mode, COUNT(c.id) FROM c WHERE ${conditionsExpression} GROUP BY c.mode`;
 const { resources } = await container.items.query<Machine>({ query, parameters }).fetchAll();
 ```
 
