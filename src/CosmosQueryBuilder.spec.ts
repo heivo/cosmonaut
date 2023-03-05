@@ -17,7 +17,8 @@ interface Machine {
 describe('CosmosQueryBuilder', () => {
   it('does what I want', () => {
     const { querySpec } = new CosmosQueryBuilder<Machine>()
-      .select('id', 'mode', 'serial', 'isConnected')
+      //.select('id', 'mode', 'serial', 'isConnected')
+      .selectMax('softDeleted.at', { groupBy: ['mode', 'softDeleted.by'] })
       .stringMatchesRegex('id', '^0001-abc-.*', { ignoreCase: true })
       .equals('isConnected', true)
       .equals('mode', ['idle', 'running'])
@@ -31,42 +32,25 @@ describe('CosmosQueryBuilder', () => {
       })
       .orderBy('serial')
       .take(10)
-      .build({ pretty: true });
+      .build({ pretty: true, noParams: true });
 
     expect(querySpec).toMatchInlineSnapshot(`
 {
-  "parameters": [
-    {
-      "name": "@id",
-      "value": "^0001-abc-.*",
-    },
-    {
-      "name": "@mode",
-      "value": [
-        "idle",
-        "running",
-      ],
-    },
-    {
-      "name": "@softDeleted_at",
-      "value": "2023-03-01",
-    },
-  ],
-  "query": "SELECT c.id, c.mode, c.serial, c.isConnected
+  "parameters": [],
+  "query": "SELECT MAX(c.softDeleted.at) as max, c.mode, c.softDeleted.by
 FROM c
-WHERE RegexMatch(c.id, @id, "i")
+WHERE RegexMatch(c.id, "^0001-abc-.*", "i")
 AND c.isConnected = true
-AND ARRAY_CONTAINS(@mode, c.mode)
+AND ARRAY_CONTAINS(["idle","running"], c.mode)
 AND c.price < 100
 AND (
   NOT IS_DEFINED(c.softDeleted)
   OR (
     IS_DEFINED(c.softDeleted)
-    AND c.softDeleted.at < @softDeleted_at
+    AND c.softDeleted.at < "2023-03-01"
   )
 )
-ORDER BY c.serial ASC
-OFFSET 0 LIMIT 10",
+GROUP BY c.mode, c.softDeleted.by",
 }
 `);
   });
@@ -75,7 +59,7 @@ OFFSET 0 LIMIT 10",
     const container = new CosmosClient('').database('').container('');
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { resources } = await new CosmosQueryBuilder<Machine>()
-      .select('id', 'mode', 'isConnected')
+      .selectSum('price', { groupBy: ['mode', 'id'] })
       .equals('id', '123')
       .build()
       .query(container)

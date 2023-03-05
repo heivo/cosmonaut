@@ -110,6 +110,48 @@ By default the whole document is selected with `SELECT * from c`. The `select()`
 .select('id', 'serial', 'isConnected')
 ```
 
+Alternatively you can use any of those aggregation functions:
+
+#### Count
+
+```ts
+.selectCount()
+.selectCount({ groupBy: 'mode' })
+.selectCount({ groupBy: ['mode', 'isConnected'] })
+```
+
+#### Min
+
+```ts
+.selectMin('price')
+.selectMin('price', { groupBy: 'mode' })
+.selectMin('price', { groupBy: ['mode', 'isConnected'] })
+```
+
+#### Max
+
+```ts
+.selectMax('price')
+.selectMax('price', { groupBy: 'mode' })
+.selectMax('price', { groupBy: ['mode', 'isConnected'] })
+```
+
+#### Sum
+
+```ts
+.selectSum('price')
+.selectSum('price', { groupBy: 'mode' })
+.selectSum('price', { groupBy: ['mode', 'isConnected'] })
+```
+
+#### Avg
+
+```ts
+.selectAvg('price')
+.selectAvg('price', { groupBy: 'mode' })
+.selectAvg('price', { groupBy: ['mode', 'isConnected'] })
+```
+
 ### Conditions
 
 #### Equals

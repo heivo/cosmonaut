@@ -28,7 +28,7 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     this.arrayContains = this.arrayContains.bind(this);
   }
 
-  equals<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V | V[]): this {
+  equals<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V | V[]) {
     if (Array.isArray(value)) {
       this.addCondition(`ARRAY_CONTAINS($value, $path)`, path, value);
     } else {
@@ -37,7 +37,7 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     return this;
   }
 
-  notEquals<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V | V[]): this {
+  notEquals<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V | V[]) {
     if (Array.isArray(value)) {
       this.addCondition(`NOT ARRAY_CONTAINS($value, $path)`, path, value);
     } else {
@@ -46,22 +46,22 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     return this;
   }
 
-  lower<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V): this {
+  lower<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V) {
     this.addCondition('$path < $value', path, value);
     return this;
   }
 
-  lowerEquals<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V): this {
+  lowerEquals<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V) {
     this.addCondition('$path <= $value', path, value);
     return this;
   }
 
-  greater<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V): this {
+  greater<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V) {
     this.addCondition('$path > $value', path, value);
     return this;
   }
 
-  greaterEquals<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V): this {
+  greaterEquals<P extends Path<T>, V extends PathValue<T, P>>(path: P, value: V) {
     this.addCondition('$path >= $value', path, value);
     return this;
   }
@@ -86,7 +86,7 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     return this;
   }
 
-  stringEquals<P extends Exclude<Path<T>, V extends string ? never : P>, V extends PathValue<T, P>>(
+  stringEquals<P extends Exclude<Path<T>, NonNullable<V> extends string ? never : P>, V extends PathValue<T, P>>(
     path: P,
     value: V,
     ignoreCase = false
@@ -95,7 +95,7 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     return this;
   }
 
-  stringContains<P extends Exclude<Path<T>, V extends string ? never : P>, V extends PathValue<T, P>>(
+  stringContains<P extends Exclude<Path<T>, NonNullable<V> extends string ? never : P>, V extends PathValue<T, P>>(
     path: P,
     value: V & string,
     ignoreCase = false
@@ -104,7 +104,7 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     return this;
   }
 
-  stringStartsWith<P extends Exclude<Path<T>, V extends string ? never : P>, V extends PathValue<T, P>>(
+  stringStartsWith<P extends Exclude<Path<T>, NonNullable<V> extends string ? never : P>, V extends PathValue<T, P>>(
     path: P,
     value: V & string,
     ignoreCase = false
@@ -113,7 +113,7 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     return this;
   }
 
-  stringEndsWith<P extends Exclude<Path<T>, V extends string ? never : P>, V extends PathValue<T, P>>(
+  stringEndsWith<P extends Exclude<Path<T>, NonNullable<V> extends string ? never : P>, V extends PathValue<T, P>>(
     path: P,
     value: V & string,
     ignoreCase = false
@@ -122,7 +122,7 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     return this;
   }
 
-  stringMatchesRegex<P extends Exclude<Path<T>, V extends string ? never : P>, V extends PathValue<T, P>>(
+  stringMatchesRegex<P extends Exclude<Path<T>, NonNullable<V> extends string ? never : P>, V extends PathValue<T, P>>(
     path: P,
     value: V,
     {
@@ -137,7 +137,7 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     return this;
   }
 
-  arrayContains<P extends Exclude<Path<T>, V extends any[] ? never : P>, V extends PathValue<T, P>>(
+  arrayContains<P extends Exclude<Path<T>, NonNullable<V> extends any[] ? never : P>, V extends PathValue<T, P>>(
     path: P,
     value: ArrayElement<V>
   ) {
@@ -150,7 +150,7 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     path: P,
     value?: V | Array<V> | ArrayElement<V>
   ) {
-    this.conditions.push({ expression, path: String(path), value });
+    this.conditions.push({ expression, path: `c.${String(path)}`, value });
   }
 
   protected getConditionsExpression(
@@ -161,7 +161,7 @@ class BaseQueryBuilder<T extends Record<string, any>> {
     const conditionsExpression = [
       ...this.conditions.map(({ expression, path, value }) => {
         return expression
-          .replace('$path', `c.${path}`)
+          .replace('$path', path)
           .replace('$value', () =>
             noParams || value === undefined || typeof value === 'boolean' || typeof value === 'number'
               ? JSON.stringify(value)
@@ -180,7 +180,7 @@ class BaseQueryBuilder<T extends Record<string, any>> {
   }
 
   private getParamName(path: string, value: any, parameters: SqlParameter[]) {
-    const baseName = `@${path.replace(/\./g, '_')}`;
+    const baseName = `@${path.replace(/^c\./, '').replace(/\./g, '_')}`;
     let paramName = baseName;
     let counter = 1;
     while (parameters.some((p) => p.name === paramName)) {
@@ -225,15 +225,22 @@ type SortOrder = 'ASC' | 'DESC';
 
 export class CosmosQueryBuilder<
   T extends Record<string, any>,
-  S extends Pick<T, any> = T
+  S extends Pick<T, any> | Record<string, any> = T
 > extends ConjunctionQueryBuilder<T> {
   private selection: string[] = [];
   private sorting: Array<{ by: string; order: SortOrder }> = [];
   private pagination: { take?: number; skip?: number } = {};
+  private grouping: string[] = [];
 
   constructor() {
     super();
     this.select = this.select.bind(this);
+    this.selectCount = this.selectCount.bind(this);
+    this.selectMin = this.selectMin.bind(this);
+    this.selectMax = this.selectMax.bind(this);
+    this.selectSum = this.selectSum.bind(this);
+    this.selectAvg = this.selectAvg.bind(this);
+    this.groupBy = this.groupBy.bind(this);
     this.orderBy = this.orderBy.bind(this);
     this.take = this.take.bind(this);
     this.skip = this.skip.bind(this);
@@ -241,13 +248,74 @@ export class CosmosQueryBuilder<
   }
 
   select<F extends keyof T, NewS extends Pick<S, F>>(...fields: F[]): CosmosQueryBuilder<T, NewS> {
-    this.selection.push(...(fields as string[]));
+    this.selection = fields.map((f) => `c.${String(f)}`);
     // @ts-ignore required for well-typed response when using the query() function
     return this;
   }
 
-  orderBy<P extends Path<T>>(by: P, order: SortOrder = 'ASC'): this {
-    this.sorting.push({ by: String(by), order });
+  selectCount<GroupBy extends Path<T>, NewS extends Pick<T, GroupBy> & { count: number }>({
+    groupBy,
+  }: { groupBy?: GroupBy | GroupBy[] } = {}): CosmosQueryBuilder<T, NewS> {
+    this.selection = ['count(1) as count'];
+    this.groupBy(groupBy);
+    // @ts-ignore required for well-typed response when using the query() function
+    return this;
+  }
+
+  selectMax<P extends Path<T>, GroupBy extends Path<T>, NewS extends Pick<T, GroupBy> & { max: PathValue<T, P> }>(
+    path: P,
+    { groupBy }: { groupBy?: GroupBy | GroupBy[] } = {}
+  ): CosmosQueryBuilder<T, NewS> {
+    this.selection = [`MAX(c.${String(path)}) as max`];
+    this.groupBy(groupBy);
+    // @ts-ignore required for well-typed response when using the query() function
+    return this;
+  }
+
+  selectMin<P extends Path<T>, GroupBy extends Path<T>, NewS extends Pick<T, GroupBy> & { min: PathValue<T, P> }>(
+    path: P,
+    { groupBy }: { groupBy?: GroupBy | GroupBy[] } = {}
+  ): CosmosQueryBuilder<T, NewS> {
+    this.selection = [`MIN(c.${String(path)}) as min`];
+    this.groupBy(groupBy);
+    // @ts-ignore required for well-typed response when using the query() function
+    return this;
+  }
+
+  selectSum<
+    P extends Exclude<Path<T>, NonNullable<PathValue<T, P>> extends number ? never : P>,
+    GroupBy extends Path<T>,
+    NewS extends Pick<T, GroupBy> & { sum: PathValue<T, P> }
+  >(path: P, { groupBy }: { groupBy?: GroupBy | GroupBy[] } = {}): CosmosQueryBuilder<T, NewS> {
+    this.selection = [`SUM(c.${String(path)}) as sum`];
+    this.groupBy(groupBy);
+    // @ts-ignore required for well-typed response when using the query() function
+    return this;
+  }
+
+  selectAvg<
+    P extends Exclude<Path<T>, NonNullable<PathValue<T, P>> extends number ? never : P>,
+    GroupBy extends Path<T>,
+    NewS extends Pick<T, GroupBy> & { avg: PathValue<T, P> }
+  >(path: P, { groupBy }: { groupBy?: GroupBy | GroupBy[] } = {}): CosmosQueryBuilder<T, NewS> {
+    this.selection = [`AVG(c.${String(path)}) as min`];
+    this.groupBy(groupBy);
+    // @ts-ignore required for well-typed response when using the query() function
+    return this;
+  }
+
+  private groupBy<GroupBy extends Path<T>>(groupBy?: GroupBy | GroupBy[]) {
+    if (typeof groupBy === 'string') {
+      this.selection.push(`c.${groupBy}`);
+      this.grouping.push(`c.${groupBy}`);
+    } else if (Array.isArray(groupBy)) {
+      this.selection.push(...groupBy.map((g) => `c.${String(g)}`));
+      this.grouping.push(...groupBy.map((g) => `c.${String(g)}`));
+    }
+  }
+
+  orderBy<P extends Path<T>>(by: P, order: SortOrder = 'ASC') {
+    this.sorting.push({ by: `c.${String(by)}`, order });
     return this;
   }
 
@@ -274,9 +342,7 @@ export class CosmosQueryBuilder<
      */
     noParams?: boolean;
   } = {}) {
-    const selectFields = this.selection.length
-      ? [...new Set(this.selection)].map((field) => `c.${field}`).join(', ')
-      : '*';
+    const selectFields = this.selection.length ? [...new Set(this.selection)].join(', ') : '*';
     let query = `SELECT ${selectFields}\nFROM c`;
 
     // eslint-disable-next-line prefer-const
@@ -285,13 +351,25 @@ export class CosmosQueryBuilder<
       query += `\nWHERE ${conditionsExpression}`;
     }
 
+    if (this.grouping.length) {
+      query += `\nGROUP BY ${this.grouping.join(', ')}`;
+    }
+
     if (this.sorting.length) {
-      const sortExpression = this.sorting.map(({ by: path, order }) => `c.${path} ${order}`).join(', ');
-      query += `\nORDER BY ${sortExpression}`;
+      if (this.grouping.length) {
+        console.warn('sorting cannot be used when using an aggregation query, ignoring it');
+      } else {
+        const sortExpression = this.sorting.map(({ by: path, order }) => `${path} ${order}`).join(', ');
+        query += `\nORDER BY ${sortExpression}`;
+      }
     }
 
     if (this.pagination.skip || this.pagination.take) {
-      query += `\nOFFSET ${this.pagination.skip ?? 0} LIMIT ${this.pagination.take ?? 999999999}`;
+      if (this.grouping.length) {
+        console.warn('pagination cannot be used when using an aggregation query, ignoring it');
+      } else {
+        query += `\nOFFSET ${this.pagination.skip ?? 0} LIMIT ${this.pagination.take ?? 999999999}`;
+      }
     }
 
     if (!pretty) {
