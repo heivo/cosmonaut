@@ -9,8 +9,8 @@ interface Machine {
   mode: 'idle' | 'running' | 'error';
   tags: string[];
   softDeleted?: {
-    atDate: string;
-    byUser: string;
+    at: string;
+    by: string;
   };
 }
 
@@ -26,7 +26,7 @@ describe('CosmosQueryBuilder', () => {
         d.isUndefined('softDeleted');
         d.and((c) => {
           c.isDefined('softDeleted');
-          c.lower('softDeleted.atDate', '2023-03-01');
+          c.lower('softDeleted.at', '2023-03-01');
         });
       })
       .orderBy('serial')
@@ -48,7 +48,7 @@ describe('CosmosQueryBuilder', () => {
       ],
     },
     {
-      "name": "@softDeleted_atDate",
+      "name": "@softDeleted_at",
       "value": "2023-03-01",
     },
   ],
@@ -62,7 +62,7 @@ AND (
   NOT IS_DEFINED(c.softDeleted)
   OR (
     IS_DEFINED(c.softDeleted)
-    AND c.softDeleted.atDate < @softDeleted_atDate
+    AND c.softDeleted.at < @softDeleted_at
   )
 )
 ORDER BY c.serial ASC

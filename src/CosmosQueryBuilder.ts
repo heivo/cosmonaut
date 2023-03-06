@@ -1,6 +1,6 @@
 import type { Container, SqlParameter, SqlQuerySpec, JSONValue } from '@azure/cosmos';
 import { unpretty } from './helpers';
-import type { ArrayElement, DeepRequired, Path, PathValue } from './typeHelpers';
+import type { ArrayElement, Path, PathValue } from './typeHelpers';
 
 const TAB = '  ';
 
@@ -226,7 +226,7 @@ type SortOrder = 'ASC' | 'DESC';
 export class CosmosQueryBuilder<
   T extends Record<string, any>,
   S extends Pick<T, any> = T
-> extends ConjunctionQueryBuilder<DeepRequired<T>> {
+> extends ConjunctionQueryBuilder<T> {
   private selection: string[] = [];
   private sorting: Array<{ by: string; order: SortOrder }> = [];
   private pagination: { take?: number; skip?: number } = {};
@@ -246,7 +246,7 @@ export class CosmosQueryBuilder<
     return this;
   }
 
-  orderBy<P extends Path<DeepRequired<T>>>(by: P, order: SortOrder = 'ASC'): this {
+  orderBy<P extends Path<T>>(by: P, order: SortOrder = 'ASC'): this {
     this.sorting.push({ by: String(by), order });
     return this;
   }
