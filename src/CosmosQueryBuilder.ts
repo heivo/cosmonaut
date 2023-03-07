@@ -1,6 +1,6 @@
 import type { Container, SqlParameter, SqlQuerySpec, JSONValue, FeedOptions } from '@azure/cosmos';
 import { unpretty } from './helpers';
-import type { ArrayElement, Path, PathValue } from './typeHelpers';
+import type { ArrayElement, Path, PathValue, PickPath, UnionToIntersection } from './typeHelpers';
 
 const TAB = '  ';
 
@@ -225,7 +225,7 @@ type SortOrder = 'ASC' | 'DESC';
 
 export class CosmosQueryBuilder<
   T extends Record<string, any>,
-  S extends Pick<T, any> | Record<string, any> = T
+  S extends UnionToIntersection<PickPath<T, Path<T>>> | Record<string, any> = T
 > extends ConjunctionQueryBuilder<T> {
   private selection: string[] = [];
   private sorting: Array<{ by: string; order: SortOrder }> = [];
@@ -247,13 +247,15 @@ export class CosmosQueryBuilder<
     this.build = this.build.bind(this);
   }
 
-  select<F extends keyof T, NewS extends Pick<S, F>>(...fields: F[]): CosmosQueryBuilder<T, NewS> {
-    this.selection = fields.map((f) => `c.${String(f)}`);
+  select<P extends Path<T>, NewS extends UnionToIntersection<PickPath<T, P>>>(
+    ...paths: P[]
+  ): CosmosQueryBuilder<T, NewS> {
+    this.selection = paths.map((p) => `c.${String(p)}`);
     // @ts-ignore required for well-typed response when using the query() function
     return this;
   }
 
-  selectCount<GroupBy extends Path<T>, NewS extends Pick<T, GroupBy> & { count: number }>({
+  selectCount<GroupBy extends Path<T>, NewS extends UnionToIntersection<PickPath<T, GroupBy>> & { count: number }>({
     groupBy,
   }: { groupBy?: GroupBy | GroupBy[] } = {}): CosmosQueryBuilder<T, NewS> {
     this.selection = ['count(1) as count'];
@@ -262,20 +264,22 @@ export class CosmosQueryBuilder<
     return this;
   }
 
-  selectMax<P extends Path<T>, GroupBy extends Path<T>, NewS extends Pick<T, GroupBy> & { max: PathValue<T, P> }>(
-    path: P,
-    { groupBy }: { groupBy?: GroupBy | GroupBy[] } = {}
-  ): CosmosQueryBuilder<T, NewS> {
+  selectMax<
+    P extends Path<T>,
+    GroupBy extends Path<T>,
+    NewS extends UnionToIntersection<PickPath<T, GroupBy>> & { max: PathValue<T, P> }
+  >(path: P, { groupBy }: { groupBy?: GroupBy | GroupBy[] } = {}): CosmosQueryBuilder<T, NewS> {
     this.selection = [`MAX(c.${String(path)}) as max`];
     this.groupBy(groupBy);
     // @ts-ignore required for well-typed response when using the query() function
     return this;
   }
 
-  selectMin<P extends Path<T>, GroupBy extends Path<T>, NewS extends Pick<T, GroupBy> & { min: PathValue<T, P> }>(
-    path: P,
-    { groupBy }: { groupBy?: GroupBy | GroupBy[] } = {}
-  ): CosmosQueryBuilder<T, NewS> {
+  selectMin<
+    P extends Path<T>,
+    GroupBy extends Path<T>,
+    NewS extends UnionToIntersection<PickPath<T, GroupBy>> & { min: PathValue<T, P> }
+  >(path: P, { groupBy }: { groupBy?: GroupBy | GroupBy[] } = {}): CosmosQueryBuilder<T, NewS> {
     this.selection = [`MIN(c.${String(path)}) as min`];
     this.groupBy(groupBy);
     // @ts-ignore required for well-typed response when using the query() function
@@ -285,7 +289,7 @@ export class CosmosQueryBuilder<
   selectSum<
     P extends Exclude<Path<T>, NonNullable<PathValue<T, P>> extends number ? never : P>,
     GroupBy extends Path<T>,
-    NewS extends Pick<T, GroupBy> & { sum: PathValue<T, P> }
+    NewS extends UnionToIntersection<PickPath<T, GroupBy>> & { sum: PathValue<T, P> }
   >(path: P, { groupBy }: { groupBy?: GroupBy | GroupBy[] } = {}): CosmosQueryBuilder<T, NewS> {
     this.selection = [`SUM(c.${String(path)}) as sum`];
     this.groupBy(groupBy);
@@ -296,7 +300,7 @@ export class CosmosQueryBuilder<
   selectAvg<
     P extends Exclude<Path<T>, NonNullable<PathValue<T, P>> extends number ? never : P>,
     GroupBy extends Path<T>,
-    NewS extends Pick<T, GroupBy> & { avg: PathValue<T, P> }
+    NewS extends UnionToIntersection<PickPath<T, GroupBy>> & { avg: PathValue<T, P> }
   >(path: P, { groupBy }: { groupBy?: GroupBy | GroupBy[] } = {}): CosmosQueryBuilder<T, NewS> {
     this.selection = [`AVG(c.${String(path)}) as min`];
     this.groupBy(groupBy);

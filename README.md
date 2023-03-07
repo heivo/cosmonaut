@@ -32,8 +32,8 @@ interface Machine {
   mode: 'idle' | 'running';
   tags: string[];
   softDeleted?: {
-    atDate: string;
-    byUser: string;
+    at: string;
+    by: string;
   };
 }
 ```
@@ -51,7 +51,7 @@ const { querySpec } = new CosmosQueryBuilder<Machine>()
     d.isUndefined('softDeleted');
     d.and((c) => {
       c.isDefined('softDeleted');
-      c.lower('softDeleted.atDate', '2023-03-01'); // 👈 nested keys are also supported
+      c.lower('softDeleted.at', '2023-03-01'); // 👈 nested keys are also supported
     });
   })
   .orderBy('serial')
@@ -75,7 +75,7 @@ The result is a `SqlQuerySpec` that you can pass to the `Items.query()` function
       NOT IS_DEFINED(c.softDeleted)
       OR (
         IS_DEFINED(c.softDeleted)
-        AND c.softDeleted.atDate < @softDeleted_atDate
+        AND c.softDeleted.at < @softDeleted_at
       )
     )
     ORDER BY c.serial ASC
@@ -84,7 +84,7 @@ The result is a `SqlQuerySpec` that you can pass to the `Items.query()` function
   "parameters": [
     { "name": "@id", "value": "^0001-abc-.*" },
     { "name": "@mode", "value": ["idle", "running"] },
-    { "name": "@softDeleted_atDate", "value": "2023-03-01" }
+    { "name": "@softDeleted_at", "value": "2023-03-01" }
   ]
 }
 ```
@@ -104,10 +104,10 @@ const { resources } = await new CosmosQueryBuilder<Machine>().select('id', 'mode
 
 ### Selecting
 
-By default the whole document is selected with `SELECT * from c`. The `select()` function let's you defined which fields to query. As of now it is only possible to pass root keys here, nested keys are not supported yet.
+By default the whole document is selected with `SELECT * from c`. The `select()` function let's you define which fields or paths to query.
 
 ```ts
-.select('id', 'serial', 'isConnected')
+.select('id', 'serial', 'isConnected', 'softDeletd.at')
 ```
 
 Alternatively you can use any of those aggregation functions:

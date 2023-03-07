@@ -59,7 +59,7 @@ GROUP BY c.mode, c.softDeleted.by",
     const container = new CosmosClient('').database('').container('');
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { resources } = await new CosmosQueryBuilder<Machine>()
-      .selectSum('price', { groupBy: ['mode', 'id'] })
+      .selectSum('price', { groupBy: ['softDeleted.at', 'mode'] })
       .equals('id', '123')
       .build()
       .query(container)
