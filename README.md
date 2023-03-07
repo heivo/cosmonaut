@@ -420,4 +420,6 @@ const container = new CosmosClient('').database('').container('');
 const { query } = queryBuilder.select('id', 'mode', 'isConnected').build();
 // resources is of type Pick<Machine, "id" | "mode" | "isConnected">[]
 const { resources } = await query(container).fetchAll();
+// you can also pass options that are forwarded to the container query function
+const { resources } = await query(container, { maxItemCount: 100 }).fetchNext();
 ```

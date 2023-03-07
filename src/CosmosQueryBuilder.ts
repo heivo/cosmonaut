@@ -1,4 +1,4 @@
-import type { Container, SqlParameter, SqlQuerySpec, JSONValue } from '@azure/cosmos';
+import type { Container, SqlParameter, SqlQuerySpec, JSONValue, FeedOptions } from '@azure/cosmos';
 import { unpretty } from './helpers';
 import type { ArrayElement, Path, PathValue } from './typeHelpers';
 
@@ -383,7 +383,7 @@ export class CosmosQueryBuilder<
       querySpec,
       conditionsExpression,
       parameters,
-      query: (container: Container) => container.items.query<S>(querySpec),
+      query: (container: Container, options?: FeedOptions) => container.items.query<S>(querySpec, options),
     };
   }
 }
