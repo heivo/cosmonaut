@@ -6,12 +6,10 @@ A type-safe CosmosDB query builder library for Node to be used alongside with th
 
 ```bash
 npm i @heivo/cosmonaut
-```
-
-or
-
-```bash
+// or
 yarn add @heivo/cosmonaut
+// or
+pnpm add @heivo/cosmonaut
 ```
 
 This library has no dependencies and 2 optional peer dependencies:
@@ -38,9 +36,11 @@ interface Machine {
 }
 ```
 
-You can can write a query like this:
+You can can build a query like this:
 
 ```ts
+import { CosmosQueryBuilder } from '@heivo/cosmonaut';
+
 const { querySpec } = new CosmosQueryBuilder<Machine>()
   .select('id', 'mode', 'serial', 'isConnected')
   .stringMatchesRegex('id', '^0001-abc-.*', { ignoreCase: true })
@@ -58,6 +58,8 @@ const { querySpec } = new CosmosQueryBuilder<Machine>()
   .take(10)
   .skip(20)
   .build({ pretty: true });
+
+const { resources } = await container.items.query<Machine>(querySpec);
 ```
 
 The result is a `SqlQuerySpec` that you can pass to the `Items.query()` function of [Azure Cosmos DB client library](https://www.npmjs.com/package/@azure/cosmos#query-the-database).
@@ -87,10 +89,6 @@ The result is a `SqlQuerySpec` that you can pass to the `Items.query()` function
     { "name": "@softDeleted_at", "value": "2023-03-01" }
   ]
 }
-```
-
-```ts
-const { resources } = await container.items.query<Machine>(querySpec);
 ```
 
 Alternatively you can pass the Cosmos container directly to the returned `query()` function and retrieve a well-typed response:
