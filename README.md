@@ -1,8 +1,30 @@
 # Cosmonaut
 
+> **⚠️ REPOSITORY NOT MAINTAINED**
+>
+> This repository is no longer actively maintained. Please use the forked version instead:
+>
+> **🔗 New Repository:** https://github.com/niroboo/cosmonaut  
+> **📦 New Package:** `@niroboo/cosmonaut`
+>
+> The forked version includes bug fixes, improvements, and ongoing maintenance.
+
 A type-safe CosmosDB query builder library for Node to be used alongside with the `@azure/cosmos` client library.
 
 ## Installation
+
+> **Use the maintained fork instead:**
+
+```bash
+npm i @niroboo/cosmonaut
+// or
+yarn add @niroboo/cosmonaut
+// or
+pnpm add @niroboo/cosmonaut
+```
+
+<details>
+<summary>Legacy installation (not recommended)</summary>
 
 ```bash
 npm i @heivo/cosmonaut
@@ -11,6 +33,8 @@ yarn add @heivo/cosmonaut
 // or
 pnpm add @heivo/cosmonaut
 ```
+
+</details>
 
 This library has no dependencies and 2 optional peer dependencies:
 
@@ -39,7 +63,7 @@ interface Machine {
 You can can build a query like this:
 
 ```ts
-import { CosmosQueryBuilder } from '@heivo/cosmonaut';
+import { CosmosQueryBuilder } from '@niroboo/cosmonaut';
 
 const { querySpec } = new CosmosQueryBuilder<Machine>()
   .select('id', 'mode', 'serial', 'isConnected')
